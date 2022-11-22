@@ -14,7 +14,7 @@ dform = "%Y-%m-%dT%H:%M:%S.%f"
 class BaseModel:
     """The AirBnB Base Model"""
 
-    def __init(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         """Initialize a new BaseModel.
 
         Args:
