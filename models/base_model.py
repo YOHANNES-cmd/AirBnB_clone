@@ -4,10 +4,11 @@
     and methods for other classes
 """
 import models
-import json
 import uuid
 from uuid import uuid4
 from datetime import datetime
+
+dform = "%Y-%m-%dT%H:%M:%S.%f"
 
 
 class BaseModel:
@@ -20,7 +21,6 @@ class BaseModel:
             *args (any): Unused.
             **kwargs (dict): Key/value pairs of attributes.
         """
-        dform = "%Y-%m-%dT%H:%M:%S.%f"
         self.id = str(uuid.uuid4())
         self.created_at = datetime.today()
         self.updated_at = datetime.today()
@@ -35,13 +35,12 @@ class BaseModel:
 
     def __str__(self):
         """str() representation of the BaseModel instance."""
-        return "[{}] ({}) {}".format(self.__class__.__name__,
-                                     self.id, self.__dict__)
+        cname = self.__class__.__name__
+        return "[{}] ({}) {}".format(cname, self.id, self.__dict__)
 
     def save(self):
         """Updates updated_at with the current datetime"""
         self.updated_at = datetime.today()
-        models.storage.new(self)
         models.storage.save()
 
     def to_dict(self):
@@ -50,12 +49,8 @@ class BaseModel:
         Includes the key/value pair __class__ representing
         the class name of the object.
         """
-        r_dict = {}
-        for key, item in self.__dict__.items():
-            if key in ['created_at', 'updated_at']:
-                r_dic[key] = item
         r_dict = self.__dict__.copy()
+        r_dict["__class__"] = self.__class__.__name__
         r_dict["created_at"] = self.created_at.isoformat()
         r_dict["updated_at"] = self.updated_at.isoformat()
-        r_dict["__class__"] = self.__class__.__name__
         return r_dict
