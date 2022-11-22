@@ -5,7 +5,6 @@
 
 ## Project Description
 
-**First step: Write a command interpreter to manage your AirBnB objects.**
 This is the first step towards building a full web application: the **AirBnB clone**. This first step is very important because you will use what you build during this project with all other following projects: HTML/CSS templating, database storage, API, front-end integration...
 
 Each task is linked and will help you to:
@@ -17,8 +16,6 @@ Each task is linked and will help you to:
 *  create all unittests to validate all our classes and storage engine
 
 ## Description of the command interpreter
-
-#  **What’s a command interpreter?**
 
 Its exactly the same as the shell but limited to a specific use-case. In our case, we want to be able to manage the objects of our project:
 
