@@ -50,6 +50,10 @@ class BaseModel:
         Includes the key/value pair __class__ representing
         the class name of the object.
         """
+        rdict = {}
+        for k, item in self.__dict__.items():
+            if k in ['created_at', 'updated_at']:
+                rdict[k] = item
         rdict = self.__dict__.copy()
         rdict["__class__"] = self.__class__.__name__
         rdict["created_at"] = self.created_at.isoformat()
