@@ -32,7 +32,7 @@ class BaseModel:
                 else:
                     self.__dict__[k] = v
         else:
-            models.storage.new(self)
+            storage.new(self)
 
     def __str__(self):
         """str() representation of the BaseModel instance."""
@@ -42,7 +42,7 @@ class BaseModel:
     def save(self):
         """Updates updated_at with the current datetime"""
         self.updated_at = datetime.today()
-        models.storage.save()
+        storage.save()
 
     def to_dict(self):
         """Return the dictionary of the BaseModel instance.
@@ -50,10 +50,6 @@ class BaseModel:
         Includes the key/value pair __class__ representing
         the class name of the object.
         """
-        rdict = {}
-        for k, item in self.__dict__.items():
-            if k in ['created_at', 'updated_at']:
-                rdict[k] = item
         rdict = self.__dict__.copy()
         rdict["__class__"] = self.__class__.__name__
         rdict["created_at"] = self.created_at.isoformat()
