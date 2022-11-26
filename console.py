@@ -6,7 +6,6 @@
 import cmd
 import json
 import re
-import models
 from shlex import split
 from models import storage
 from models.base_model import BaseModel
