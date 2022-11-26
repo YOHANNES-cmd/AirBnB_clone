@@ -42,8 +42,8 @@ class BaseModel:
     def save(self):
         """Updates updated_at with the current datetime"""
         self.updated_at = datetime.today()
-        models.storage.save()
         models.storage.new(self)
+        models.storage.save()
 
     def to_dict(self):
         """Return the dictionary of the BaseModel instance.
@@ -51,8 +51,8 @@ class BaseModel:
         Includes the key/value pair __class__ representing
         the class name of the object.
         """
-        rdict = self.__dict__.copy()
-        rdict["__class__"] = self.__class__.__name__
-        rdict["created_at"] = self.created_at.isoformat()
-        rdict["updated_at"] = self.updated_at.isoformat()
-        return rdict
+        r_dict = self.__dict__.copy()
+        r_dict["__class__"] = self.__class__.__name__
+        r_dict["created_at"] = self.created_at.isoformat()
+        r_dict["updated_at"] = self.updated_at.isoformat()
+        return r_dict
