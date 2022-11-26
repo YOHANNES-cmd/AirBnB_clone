@@ -4,6 +4,8 @@
     and deserializes JSON file to instances
 """
 import json
+import os.path
+from os.path import exists
 from models.base_model import BaseModel
 from models.user import User
 from models.state import State
