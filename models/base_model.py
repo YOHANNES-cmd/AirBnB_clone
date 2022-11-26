@@ -8,6 +8,7 @@ import json
 import uuid
 from uuid import uuid4
 from datetime import datetime
+from models.engine import file_storage
 
 dform = "%Y-%m-%dT%H:%M:%S.%f"
 
