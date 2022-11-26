@@ -204,7 +204,7 @@ class HBNBCommand(cmd.Cmd):
                     obj.__dict__[k] = valtype(v)
                 else:
                     obj.__dict__[k] = v
-        models.storage.save()
+        storage.save()
 
     def do_count(self, arg):
         """Usage: count <class> or <class>.count()
@@ -217,5 +217,5 @@ class HBNBCommand(cmd.Cmd):
         print(count)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     HBNBCommand().cmdloop()
