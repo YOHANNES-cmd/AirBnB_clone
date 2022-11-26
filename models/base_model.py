@@ -59,7 +59,7 @@ class BaseModel:
                 rdict[k] = item
 
         rdict = self.__dict__.copy()
-        rdict["__class__"] = self.__class__.__name__
+        rdict.update({"__class__": type(self).__name__})
         rdict["created_at"] = self.created_at.isoformat()
         rdict["updated_at"] = self.updated_at.isoformat()
         return rdict
