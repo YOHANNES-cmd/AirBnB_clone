@@ -15,6 +15,7 @@ from models.city import City
 from models.amenity import Amenity
 from models.place import Place
 from models.review import Review
+import models
 
 
 def parse(arg):
@@ -163,7 +164,7 @@ class HBNBCommand(cmd.Cmd):
         Update a class instance of a given id by adding or updating
         a given attribute key/value pair or dictionary."""
         argl = parse(arg)
-        objdict = storage.all()
+        objdict = models.storage.all()
 
         if len(argl) == 0:
             print("** class name missing **")
