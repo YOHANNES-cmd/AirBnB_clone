@@ -37,12 +37,11 @@ class BaseModel:
     def __str__(self):
         """str() representation of the BaseModel instance."""
         clname = self.__class__.__name__
-        return "[{}] ({}) {}".format(cname, self.id, self.__dict__)
+        return "[{}] ({}) {}".format(clname, self.id, self.__dict__)
 
     def save(self):
         """Updates updated_at with the current datetime"""
         self.updated_at = datetime.today()
-        models.storage.new(self)
         models.storage.save()
 
     def to_dict(self):
@@ -51,8 +50,8 @@ class BaseModel:
         Includes the key/value pair __class__ representing
         the class name of the object.
         """
-        r_dict = self.__dict__.copy()
-        r_dict["__class__"] = self.__class__.__name__
-        r_dict["created_at"] = self.created_at.isoformat()
-        r_dict["updated_at"] = self.updated_at.isoformat()
-        return r_dict
+        rdict = self.__dict__.copy()
+        rdict["__class__"] = self.__class__.__name__
+        rdict["created_at"] = self.created_at.isoformat()
+        rdict["updated_at"] = self.updated_at.isoformat()
+        return rdict
