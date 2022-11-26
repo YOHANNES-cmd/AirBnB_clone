@@ -11,6 +11,16 @@ from models.place import Place
 from models.review import Review
 from models.amenity import Amenity
 
+__classes = {
+        "BaseModel": BaseModel,
+        "User": User,
+        "State": State,
+        "City": City,
+        "Place": Place,
+        "Amenity": Amenity,
+        "Review": Review
+ }
+
 
 storage = FileStorage()
 storage.reload()
