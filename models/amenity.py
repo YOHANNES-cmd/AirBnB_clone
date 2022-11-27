@@ -1,15 +1,12 @@
 #!/usr/bin/python3
 """
-    Defines the Amenity class
+Defines the state model
 """
-from models.base_model import BaseModel
+from .base_model import BaseModel
 
 
 class Amenity(BaseModel):
-    """Custom amenity class
-
-    Attributes:
-        name(str): amenity name
-
+    """
+    Blueprint for Amenity objects
     """
     name = ""
