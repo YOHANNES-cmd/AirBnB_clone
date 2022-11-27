@@ -1,238 +1,1382 @@
 #!/usr/bin/python3
 """
-Entry point of the command interpreter
-Use: ./console.py
-(hbnb) <command>
+Airbnb Console
 """
 import cmd
 from models.base_model import BaseModel
-from models import storage
+from models.__init__ import storage
 from models.user import User
 from models.place import Place
-from models.state import State
-from models.city import City
 from models.amenity import Amenity
 from models.review import Review
-import shlex
+from models.city import City
+from models.state import State
 
 
 class HBNBCommand(cmd.Cmd):
     """
-    Use of cmd class as an interpreter
-    Class Attributes:
-        prompt (str): custom prompt
-        name_classes: dictionay of classes
-        name_dotcommand: commands/functions with dot format
+    The entry point for the command interpreter
     """
-    prompt = "(hbnb) "
-    name_classes = {"BaseModel": BaseModel, "User": User,
-                    "Place": Place, "State": State, "City": City,
-                    "Amenity": Amenity, "Review": Review}
+    prompt = '(hbnb) '
+    classes = ['BaseModel', 'User', 'Place', 'State',
+               'City', 'Amenity', 'Review']
+    dotcmds = ['.all()', '.count()']
 
-    def do_quit(self, arg):
-        'Quit command to exit the program\n'
+#   def parseline(self, line):
+#       print (f'parseline({line}) =>')
+#       ret = cmd.Cmd.parseline(self, line)
+#       print (ret)
+#       return ret
+
+    def do_create(self, line):
+        """Creates a new instance of a given class, saves it \
+(to the JSON file) and prints the id."""
+        if line == '':
+            print('** class name missing **')
+        elif line not in HBNBCommand.classes:
+            print('** class doesn\'t exist **')
+        else:
+            if line == 'BaseModel':
+                obj = BaseModel()
+            elif line == 'User':
+                obj = User()
+            elif line == 'Place':
+                obj = Place()
+            elif line == 'State':
+                obj = State()
+            elif line == 'City':
+                obj = City()
+            elif line == 'Amenity':
+                obj = Amenity()
+            elif line == 'Review':
+                obj = Review()
+            storage.save()
+            print(obj.id)
+
+    def do_show(self, line):
+        """Prints the string representation of an instance based \
+on the class name and id."""
+        args = line.split()
+        if line == '':
+            print('** class name missing **')
+        elif args[0] not in HBNBCommand.classes:
+            print('** class doesn\'t exist **')
+        else:
+            if len(args) < 2:
+                print('** instance id missing **')
+            else:
+                classname = args[0]
+                objid = args[1]
+                key = classname + '.' + objid
+                try:
+                    print(storage.all()[key])
+                except KeyError:
+                    print('** no instance found **')
+
+    def do_destroy(self, line):
+        """
+        Deletes an instance based on the class name
+        and id (save the change into the JSON file)
+        """
+        args = line.split()
+        if line == '':
+            print('** class name missing **')
+        elif args[0] not in HBNBCommand.classes:
+            print('** class doesn\'t exist **')
+        else:
+            if len(args) < 2:
+                print('** instance id missing **')
+            else:
+                classname = args[0]
+                objid = args[1]
+                key = classname + '.' + objid
+                try:
+                    del storage.all()[key]
+                    storage.save()
+                except KeyError:
+                    print('** no instance found **')
+
+    def do_all(self, line):
+        """
+        Prints all string representation of all instances
+        based or not on the class name. Ex: $ all BaseModel or $ all
+        """
+        args = line.split()
+        result = []
+        if len(args) != 0:
+            if args[0] not in HBNBCommand.classes:
+                print('** class doesn\'t exist **')
+                return
+            else:
+                for key, value in storage.all().items():
+                    if type(value).__name__ == args[0]:
+                        result.append(value.__str__())
+        else:
+            for key, value in storage.all().items():
+                result.append(value.__str__())
+        print(result)
+
+    def do_update(self, line):
+        """
+        Updates an instance based on the class name and
+        id by adding or updating attribute
+        (save the change into the JSON file). Ex: $ update
+        BaseModel 1234-1234-1234 email "aibnb@mail.com".
+        update <class name> <id> <attribute name> "<attribute value>"
+        """
+        args = line.split()
+        if line == '':
+            print('** class name missing **')
+        elif args[0] not in HBNBCommand.classes:
+            print('** class doesn\'t exist **')
+        elif len(args) < 2:
+            print('** instance id missing **')
+
+        elif len(args) < 3:
+            print('** attribute name missing **')
+        elif len(args) < 4:
+            print('** value missing **')
+        else:
+            classname = args[0]
+            objid = args[1]
+            attr = args[2]
+            value = args[3]
+            oob = ['id', 'created_at', 'updated_at']
+            if attr in oob:
+                print('** attribute can\'t be updated **')
+                return
+            """
+            string validity test begins (incomplete)
+            """
+            if value[0] == '"' and value[-1] == '"' or value[0] == "'":
+                if value[0] != '"':
+                    print("** A string argument must be between \
+double quotes **")
+                    return
+                value = value[1:-1]
+            else:
+                try:
+                    for c in value:
+                        if c == '.':
+                            value = float(value)
+                            break
+                    else:
+                        value = int(value)
+                except ValueError:
+                    print("** A string argument must \
+be between double quote **")
+            if (attr[0] == '"' and attr[-1] == '"')\
+               or attr[0] == "'" or attr[-1] == "'":
+                if attr[0] != '"' or attr[-1] == "'":
+                    print("** A string argument must be between \
+double quotes **")
+                    return
+                attr = attr[1:-1]
+            """ string validity test ends """
+            key = classname + '.' + objid
+            try:
+                instance = storage.all()[key]
+                instance.__dict__[attr] = value
+                instance.save()
+            except KeyError:
+                print('** no instance found **')
+
+    def do_BaseModel(self, line):
+        objects = []
+        parse_line = cmd.Cmd.parseline(self, line)
+        arg = parse_line[2]
+
+        for key, value in storage.all().items():
+            if type(value).__name__ == 'BaseModel':
+                objects.append(value)
+
+        if arg in HBNBCommand.dotcmds:
+            result = [value.__str__() for value in objects]
+            if arg == HBNBCommand.dotcmds[0]:
+                print(result)
+            elif arg == HBNBCommand.dotcmds[1]:
+                print(len(result))
+
+        elif arg[0:6] == '.show(':
+            if arg[-1] != ')':
+                return cmd.Cmd.default(self, line)
+            else:
+                model_id = arg[6:-1]
+                if model_id == '':
+                    print("** instance id missing **")
+                    return
+                for obj in objects:
+                    if obj.id == model_id:
+                        print(obj)
+                        break
+                else:
+                    print('** no instance found **')
+
+        elif arg[0:9] == '.destroy(':
+            if arg[-1] != ')':
+                return cmd.Cmd.default(self, line)
+            else:
+                model_id = arg[9:-1]
+                if model_id == '':
+                    print("** instance id missing **")
+                    return
+                key = 'BaseModel.' + model_id
+                try:
+                    del storage.all()[key]
+                    storage.save()
+                except KeyError:
+                    print('** no instance found **')
+
+        elif arg[0:8] == '.update(':
+            if arg[-1] != ')':
+                return cmd.Cmd.default(self, line)
+            else:
+                args = arg[8:-1]
+                args_list = args.split(',')
+                oob = ['id', 'created_at', 'updated_at']
+
+                if len(args_list) < 2 and args_list[0] == '':
+                    print('** instance id missing **')
+                    return
+                elif len(args_list) < 2:
+                    print('** attribute name missing **')
+                    return
+                else:
+                    # clear whitespaces around arguments
+                    i = 0
+                    while (i < len(args_list)):
+                        while(args_list[i][0] == " "):
+                            args_list[i] = args_list[i][1:]
+                        i += 1
+
+                    if args_list[1][0] == '{' and args_list[-1][-1] == '}':
+                        dictargs = args_list[1:]
+                        dictargs[0] = dictargs[0][1:]
+                        dictargs[-1] = dictargs[-1][:-1]
+                        key = 'BaseModel.' + args_list[0]
+                        try:
+                            instance = storage.all()[key]
+                        except KeyError:
+                            print('** no instance found **')
+                            return
+                        for s in dictargs:
+                            keyval = s.split(':')
+                            key = keyval[0]
+                            value = keyval[1]
+                            while(value[0] == " "):
+                                value = value[1:]
+                            if key in oob:
+                                print('** attribute can\'t be updated **')
+                                return
+                            if (key[0] == '"' and key[-1] == '"')\
+                               or (key[0] == "'" and key[-1] == "'"):
+                                key = key[1:-1]
+                            else:
+                                print("** Dictionary object keys must be \
+strings **")
+                                return
+                            if (value[0] == '"' and value[-1] == '"')\
+                               or (value[0] == "'" and value[-1] == "'"):
+                                value = value[1:-1]
+
+                            else:
+                                for c in value:
+                                    if c == " ":
+                                        print("** A string argument with a \
+space must be between double quotes **")
+                                        return
+                                try:
+                                    for c in value:
+                                        if c == '.':
+                                            value = float(value)
+                                            break
+                                    else:
+                                        value = int(value)
+                                except ValueError:
+                                    pass
+
+                            instance.__dict__[key] = value
+                            instance.save()
+                        return
+                    elif len(args_list) < 3:
+                        print('** value missing **')
+                        return
+
+                model_id = args_list[0]
+                attr = args_list[1]
+                value = args_list[2]
+
+                if attr in oob:
+                    print('** attribute can\'t be updated **')
+                    return
+                """
+                string validity test begins (incomplete)
+                """
+                if (attr[0] == '"' and attr[-1] == '"'):
+                    attr = attr[1:-1]
+                else:
+                    for i in attr:
+                        if i == " ":
+                            print("** A string argument with a space \
+must be between double quotes **")
+                            return
+                if value[0] == '"' and value[-1] == '"':
+                    value = value[1:-1]
+                else:
+                    for i in attr:
+                        if i == " ":
+                            print("** A string argument with a space \
+must be between double quotes **")
+                            return
+                    try:
+                        for c in value:
+                            if c == '.':
+                                value = float(value)
+                                break
+                        else:
+                            value = int(value)
+                    except ValueError:
+                        pass
+                """ string validity test ends """
+
+                key = 'BaseModel.' + model_id
+                try:
+                    instance = storage.all()[key]
+                    instance.__dict__[attr] = value
+                    instance.save()
+                except KeyError:
+                    print('** no instance found **')
+
+        else:
+            return cmd.Cmd.default(self, line)
+
+    def do_User(self, line):
+        objects = []
+        parse_line = cmd.Cmd.parseline(self, line)
+        arg = parse_line[2]
+
+        for key, value in storage.all().items():
+            if type(value).__name__ == 'User':
+                objects.append(value)
+
+        if arg in HBNBCommand.dotcmds:
+            result = [value.__str__() for value in objects]
+            if arg == HBNBCommand.dotcmds[0]:
+                print(result)
+            elif arg == HBNBCommand.dotcmds[1]:
+                print(len(result))
+
+        elif arg[0:6] == '.show(':
+            if arg[-1] != ')':
+                return cmd.Cmd.default(self, line)
+            else:
+                model_id = arg[6:-1]
+                if model_id == '':
+                    print("** instance id missing **")
+                    return
+                for obj in objects:
+                    if obj.id == model_id:
+                        print(obj)
+                        break
+                else:
+                    print('** no instance found **')
+
+        elif arg[0:9] == '.destroy(':
+            if arg[-1] != ')':
+                return cmd.Cmd.default(self, line)
+            else:
+                model_id = arg[9:-1]
+                if model_id == '':
+                    print("** instance id missing **")
+                    return
+                key = 'User.' + model_id
+                try:
+                    del storage.all()[key]
+                    storage.save()
+                except KeyError:
+                    print('** no instance found **')
+
+        elif arg[0:8] == '.update(':
+            if arg[-1] != ')':
+                return cmd.Cmd.default(self, line)
+            else:
+                args = arg[8:-1]
+                args_list = args.split(',')
+                oob = ['id', 'created_at', 'updated_at']
+
+                if len(args_list) < 2 and args_list[0] == '':
+                    print('** instance id missing **')
+                    return
+                elif len(args_list) < 2:
+                    print('** attribute name missing **')
+                    return
+                else:
+                    # clear whitespaces around arguments
+                    i = 0
+                    while (i < len(args_list)):
+                        while(args_list[i][0] == " "):
+                            args_list[i] = args_list[i][1:]
+                        i += 1
+
+                    if args_list[1][0] == '{' and args_list[-1][-1] == '}':
+                        dictargs = args_list[1:]
+                        dictargs[0] = dictargs[0][1:]
+                        dictargs[-1] = dictargs[-1][:-1]
+                        key = 'User.' + args_list[0]
+                        try:
+                            instance = storage.all()[key]
+                        except KeyError:
+                            print('** no instance found **')
+                            return
+                        for s in dictargs:
+                            keyval = s.split(':')
+                            key = keyval[0]
+                            value = keyval[1]
+                            while(value[0] == " "):
+                                value = value[1:]
+                            if key in oob:
+                                print('** attribute can\'t be updated **')
+                                return
+                            if (key[0] == '"' and key[-1] == '"')\
+                               or (key[0] == "'" and key[-1] == "'"):
+                                key = key[1:-1]
+                            else:
+                                print("** Dictionary object keys must be \
+strings **")
+                                return
+                            if (value[0] == '"' and value[-1] == '"')\
+                               or (value[0] == "'" and value[-1] == "'"):
+                                value = value[1:-1]
+
+                            else:
+                                for c in value:
+                                    if c == " ":
+                                        print("** A string argument with a \
+space must be between double quotes **")
+                                        return
+                                try:
+                                    for c in value:
+                                        if c == '.':
+                                            value = float(value)
+                                            break
+                                    else:
+                                        value = int(value)
+                                except ValueError:
+                                    pass
+
+                            instance.__dict__[key] = value
+                            instance.save()
+                        return
+                    elif len(args_list) < 3:
+                        print('** value missing **')
+                        return
+
+                model_id = args_list[0]
+                attr = args_list[1]
+                value = args_list[2]
+
+                if attr in oob:
+                    print('** attribute can\'t be updated **')
+                    return
+                """
+                string validity test begins (incomplete)
+                """
+                if (attr[0] == '"' and attr[-1] == '"'):
+                    attr = attr[1:-1]
+                else:
+                    for i in attr:
+                        if i == " ":
+                            print("** A string argument with a space \
+must be between double quotes **")
+                            return
+                if value[0] == '"' and value[-1] == '"':
+                    value = value[1:-1]
+                else:
+                    for i in attr:
+                        if i == " ":
+                            print("** A string argument with a space \
+must be between double quotes **")
+                            return
+                    try:
+                        for c in value:
+                            if c == '.':
+                                value = float(value)
+                                break
+                        else:
+                            value = int(value)
+                    except ValueError:
+                        pass
+                """ string validity test ends """
+
+                key = 'User.' + model_id
+                try:
+                    instance = storage.all()[key]
+                    instance.__dict__[attr] = value
+                    instance.save()
+                except KeyError:
+                    print('** no instance found **')
+
+        else:
+            return cmd.Cmd.default(self, line)
+
+    def do_Place(self, line):
+        objects = []
+        parse_line = cmd.Cmd.parseline(self, line)
+        arg = parse_line[2]
+
+        for key, value in storage.all().items():
+            if type(value).__name__ == 'Place':
+                objects.append(value)
+
+        if arg in HBNBCommand.dotcmds:
+            result = [value.__str__() for value in objects]
+            if arg == HBNBCommand.dotcmds[0]:
+                print(result)
+            elif arg == HBNBCommand.dotcmds[1]:
+                print(len(result))
+
+        elif arg[0:6] == '.show(':
+            if arg[-1] != ')':
+                return cmd.Cmd.default(self, line)
+            else:
+                model_id = arg[6:-1]
+                if model_id == '':
+                    print("** instance id missing **")
+                    return
+                for obj in objects:
+                    if obj.id == model_id:
+                        print(obj)
+                        break
+                else:
+                    print('** no instance found **')
+
+        elif arg[0:9] == '.destroy(':
+            if arg[-1] != ')':
+                return cmd.Cmd.default(self, line)
+            else:
+                model_id = arg[9:-1]
+                if model_id == '':
+                    print("** instance id missing **")
+                    return
+                key = 'Place.' + model_id
+                try:
+                    del storage.all()[key]
+                    storage.save()
+                except KeyError:
+                    print('** no instance found **')
+
+        elif arg[0:8] == '.update(':
+            if arg[-1] != ')':
+                return cmd.Cmd.default(self, line)
+            else:
+                args = arg[8:-1]
+                args_list = args.split(',')
+                oob = ['id', 'created_at', 'updated_at']
+
+                if len(args_list) < 2 and args_list[0] == '':
+                    print('** instance id missing **')
+                    return
+                elif len(args_list) < 2:
+                    print('** attribute name missing **')
+                    return
+                else:
+                    # clear whitespaces around arguments
+                    i = 0
+                    while (i < len(args_list)):
+                        while(args_list[i][0] == " "):
+                            args_list[i] = args_list[i][1:]
+                        i += 1
+
+                    if args_list[1][0] == '{' and args_list[-1][-1] == '}':
+                        dictargs = args_list[1:]
+                        dictargs[0] = dictargs[0][1:]
+                        dictargs[-1] = dictargs[-1][:-1]
+                        key = 'Place.' + args_list[0]
+                        try:
+                            instance = storage.all()[key]
+                        except KeyError:
+                            print('** no instance found **')
+                            return
+                        for s in dictargs:
+                            keyval = s.split(':')
+                            key = keyval[0]
+                            value = keyval[1]
+                            while(value[0] == " "):
+                                value = value[1:]
+                            if key in oob:
+                                print('** attribute can\'t be updated **')
+                                return
+                            if (key[0] == '"' and key[-1] == '"')\
+                               or (key[0] == "'" and key[-1] == "'"):
+                                key = key[1:-1]
+                            else:
+                                print("** Dictionary object keys must be \
+strings **")
+                                return
+                            if (value[0] == '"' and value[-1] == '"')\
+                               or (value[0] == "'" and value[-1] == "'"):
+                                value = value[1:-1]
+
+                            else:
+                                for c in value:
+                                    if c == " ":
+                                        print("** A string argument with a \
+space must be between double quotes **")
+                                        return
+                                try:
+                                    for c in value:
+                                        if c == '.':
+                                            value = float(value)
+                                            break
+                                    else:
+                                        value = int(value)
+                                except ValueError:
+                                    pass
+
+                            instance.__dict__[key] = value
+                            instance.save()
+                        return
+                    elif len(args_list) < 3:
+                        print('** value missing **')
+                        return
+
+                model_id = args_list[0]
+                attr = args_list[1]
+                value = args_list[2]
+
+                if attr in oob:
+                    print('** attribute can\'t be updated **')
+                    return
+                """
+                string validity test begins (incomplete)
+                """
+                if (attr[0] == '"' and attr[-1] == '"'):
+                    attr = attr[1:-1]
+                else:
+                    for i in attr:
+                        if i == " ":
+                            print("** A string argument with a space \
+must be between double quotes **")
+                            return
+                if value[0] == '"' and value[-1] == '"':
+                    value = value[1:-1]
+                else:
+                    for i in attr:
+                        if i == " ":
+                            print("** A string argument with a space \
+must be between double quotes **")
+                            return
+                    try:
+                        for c in value:
+                            if c == '.':
+                                value = float(value)
+                                break
+                        else:
+                            value = int(value)
+                    except ValueError:
+                        pass
+                """ string validity test ends """
+
+                key = 'Place.' + model_id
+                try:
+                    instance = storage.all()[key]
+                    instance.__dict__[attr] = value
+                    instance.save()
+                except KeyError:
+                    print('** no instance found **')
+
+        else:
+            return cmd.Cmd.default(self, line)
+
+    def do_State(self, line):
+        objects = []
+        parse_line = cmd.Cmd.parseline(self, line)
+        arg = parse_line[2]
+
+        for key, value in storage.all().items():
+            if type(value).__name__ == 'State':
+                objects.append(value)
+
+        if arg in HBNBCommand.dotcmds:
+            result = [value.__str__() for value in objects]
+            if arg == HBNBCommand.dotcmds[0]:
+                print(result)
+            elif arg == HBNBCommand.dotcmds[1]:
+                print(len(result))
+
+        elif arg[0:6] == '.show(':
+            if arg[-1] != ')':
+                return cmd.Cmd.default(self, line)
+            else:
+                model_id = arg[6:-1]
+                if model_id == '':
+                    print("** instance id missing **")
+                    return
+                for obj in objects:
+                    if obj.id == model_id:
+                        print(obj)
+                        break
+                else:
+                    print('** no instance found **')
+
+        elif arg[0:9] == '.destroy(':
+            if arg[-1] != ')':
+                return cmd.Cmd.default(self, line)
+            else:
+                model_id = arg[9:-1]
+                if model_id == '':
+                    print("** instance id missing **")
+                    return
+                key = 'State.' + model_id
+                try:
+                    del storage.all()[key]
+                    storage.save()
+                except KeyError:
+                    print('** no instance found **')
+
+        elif arg[0:8] == '.update(':
+            if arg[-1] != ')':
+                return cmd.Cmd.default(self, line)
+            else:
+                args = arg[8:-1]
+                args_list = args.split(',')
+                oob = ['id', 'created_at', 'updated_at']
+
+                if len(args_list) < 2 and args_list[0] == '':
+                    print('** instance id missing **')
+                    return
+                elif len(args_list) < 2:
+                    print('** attribute name missing **')
+                    return
+                else:
+                    # clear whitespaces around arguments
+                    i = 0
+                    while (i < len(args_list)):
+                        while(args_list[i][0] == " "):
+                            args_list[i] = args_list[i][1:]
+                        i += 1
+
+                    if args_list[1][0] == '{' and args_list[-1][-1] == '}':
+                        dictargs = args_list[1:]
+                        dictargs[0] = dictargs[0][1:]
+                        dictargs[-1] = dictargs[-1][:-1]
+                        key = 'State.' + args_list[0]
+                        try:
+                            instance = storage.all()[key]
+                        except KeyError:
+                            print('** no instance found **')
+                            return
+                        for s in dictargs:
+                            keyval = s.split(':')
+                            key = keyval[0]
+                            value = keyval[1]
+                            while(value[0] == " "):
+                                value = value[1:]
+                            if key in oob:
+                                print('** attribute can\'t be updated **')
+                                return
+                            if (key[0] == '"' and key[-1] == '"')\
+                               or (key[0] == "'" and key[-1] == "'"):
+                                key = key[1:-1]
+                            else:
+                                print("** Dictionary object keys must be \
+strings **")
+                                return
+                            if (value[0] == '"' and value[-1] == '"')\
+                               or (value[0] == "'" and value[-1] == "'"):
+                                value = value[1:-1]
+
+                            else:
+                                for c in value:
+                                    if c == " ":
+                                        print("** A string argument with a \
+space must be between double quotes **")
+                                        return
+                                try:
+                                    for c in value:
+                                        if c == '.':
+                                            value = float(value)
+                                            break
+                                    else:
+                                        value = int(value)
+                                except ValueError:
+                                    pass
+
+                            instance.__dict__[key] = value
+                            instance.save()
+                        return
+                    elif len(args_list) < 3:
+                        print('** value missing **')
+                        return
+
+                model_id = args_list[0]
+                attr = args_list[1]
+                value = args_list[2]
+
+                if attr in oob:
+                    print('** attribute can\'t be updated **')
+                    return
+                """
+                string validity test begins (incomplete)
+                """
+                if (attr[0] == '"' and attr[-1] == '"'):
+                    attr = attr[1:-1]
+                else:
+                    for i in attr:
+                        if i == " ":
+                            print("** A string argument with a space \
+must be between double quotes **")
+                            return
+                if value[0] == '"' and value[-1] == '"':
+                    value = value[1:-1]
+                else:
+                    for i in attr:
+                        if i == " ":
+                            print("** A string argument with a space \
+must be between double quotes **")
+                            return
+                    try:
+                        for c in value:
+                            if c == '.':
+                                value = float(value)
+                                break
+                        else:
+                            value = int(value)
+                    except ValueError:
+                        pass
+                """ string validity test ends """
+
+                key = 'State.' + model_id
+                try:
+                    instance = storage.all()[key]
+                    instance.__dict__[attr] = value
+                    instance.save()
+                except KeyError:
+                    print('** no instance found **')
+
+        else:
+            return cmd.Cmd.default(self, line)
+
+    def do_City(self, line):
+        objects = []
+        parse_line = cmd.Cmd.parseline(self, line)
+        arg = parse_line[2]
+
+        for key, value in storage.all().items():
+            if type(value).__name__ == 'City':
+                objects.append(value)
+
+        if arg in HBNBCommand.dotcmds:
+            result = [value.__str__() for value in objects]
+            if arg == HBNBCommand.dotcmds[0]:
+                print(result)
+            elif arg == HBNBCommand.dotcmds[1]:
+                print(len(result))
+
+        elif arg[0:6] == '.show(':
+            if arg[-1] != ')':
+                return cmd.Cmd.default(self, line)
+            else:
+                model_id = arg[6:-1]
+                if model_id == '':
+                    print("** instance id missing **")
+                    return
+                for obj in objects:
+                    if obj.id == model_id:
+                        print(obj)
+                        break
+                else:
+                    print('** no instance found **')
+
+        elif arg[0:9] == '.destroy(':
+            if arg[-1] != ')':
+                return cmd.Cmd.default(self, line)
+            else:
+                model_id = arg[9:-1]
+                if model_id == '':
+                    print("** instance id missing **")
+                    return
+                key = 'City.' + model_id
+                try:
+                    del storage.all()[key]
+                    storage.save()
+                except KeyError:
+                    print('** no instance found **')
+
+        elif arg[0:8] == '.update(':
+            if arg[-1] != ')':
+                return cmd.Cmd.default(self, line)
+            else:
+                args = arg[8:-1]
+                args_list = args.split(',')
+                oob = ['id', 'created_at', 'updated_at']
+
+                if len(args_list) < 2 and args_list[0] == '':
+                    print('** instance id missing **')
+                    return
+                elif len(args_list) < 2:
+                    print('** attribute name missing **')
+                    return
+                else:
+                    # clear whitespaces around arguments
+                    i = 0
+                    while (i < len(args_list)):
+                        while(args_list[i][0] == " "):
+                            args_list[i] = args_list[i][1:]
+                        i += 1
+
+                    if args_list[1][0] == '{' and args_list[-1][-1] == '}':
+                        dictargs = args_list[1:]
+                        dictargs[0] = dictargs[0][1:]
+                        dictargs[-1] = dictargs[-1][:-1]
+                        key = 'City.' + args_list[0]
+                        try:
+                            instance = storage.all()[key]
+                        except KeyError:
+                            print('** no instance found **')
+                            return
+                        for s in dictargs:
+                            keyval = s.split(':')
+                            key = keyval[0]
+                            value = keyval[1]
+                            while(value[0] == " "):
+                                value = value[1:]
+                            if key in oob:
+                                print('** attribute can\'t be updated **')
+                                return
+                            if (key[0] == '"' and key[-1] == '"')\
+                               or (key[0] == "'" and key[-1] == "'"):
+                                key = key[1:-1]
+                            else:
+                                print("** Dictionary object keys must be \
+strings **")
+                                return
+                            if (value[0] == '"' and value[-1] == '"')\
+                               or (value[0] == "'" and value[-1] == "'"):
+                                value = value[1:-1]
+
+                            else:
+                                for c in value:
+                                    if c == " ":
+                                        print("** A string argument with a \
+space must be between double quotes **")
+                                        return
+                                try:
+                                    for c in value:
+                                        if c == '.':
+                                            value = float(value)
+                                            break
+                                    else:
+                                        value = int(value)
+                                except ValueError:
+                                    pass
+
+                            instance.__dict__[key] = value
+                            instance.save()
+                        return
+                    elif len(args_list) < 3:
+                        print('** value missing **')
+                        return
+
+                model_id = args_list[0]
+                attr = args_list[1]
+                value = args_list[2]
+
+                if attr in oob:
+                    print('** attribute can\'t be updated **')
+                    return
+                """
+                string validity test begins (incomplete)
+                """
+                if (attr[0] == '"' and attr[-1] == '"'):
+                    attr = attr[1:-1]
+                else:
+                    for i in attr:
+                        if i == " ":
+                            print("** A string argument with a space \
+must be between double quotes **")
+                            return
+                if value[0] == '"' and value[-1] == '"':
+                    value = value[1:-1]
+                else:
+                    for i in attr:
+                        if i == " ":
+                            print("** A string argument with a space \
+must be between double quotes **")
+                            return
+                    try:
+                        for c in value:
+                            if c == '.':
+                                value = float(value)
+                                break
+                        else:
+                            value = int(value)
+                    except ValueError:
+                        pass
+                """ string validity test ends """
+
+                key = 'City.' + model_id
+                try:
+                    instance = storage.all()[key]
+                    instance.__dict__[attr] = value
+                    instance.save()
+                except KeyError:
+                    print('** no instance found **')
+
+        else:
+            return cmd.Cmd.default(self, line)
+
+    def do_Amenity(self, line):
+        objects = []
+        parse_line = cmd.Cmd.parseline(self, line)
+        arg = parse_line[2]
+
+        for key, value in storage.all().items():
+            if type(value).__name__ == 'Amenity':
+                objects.append(value)
+
+        if arg in HBNBCommand.dotcmds:
+            result = [value.__str__() for value in objects]
+            if arg == HBNBCommand.dotcmds[0]:
+                print(result)
+            elif arg == HBNBCommand.dotcmds[1]:
+                print(len(result))
+
+        elif arg[0:6] == '.show(':
+            if arg[-1] != ')':
+                return cmd.Cmd.default(self, line)
+            else:
+                model_id = arg[6:-1]
+                if model_id == '':
+                    print("** instance id missing **")
+                    return
+                for obj in objects:
+                    if obj.id == model_id:
+                        print(obj)
+                        break
+                else:
+                    print('** no instance found **')
+
+        elif arg[0:9] == '.destroy(':
+            if arg[-1] != ')':
+                return cmd.Cmd.default(self, line)
+            else:
+                model_id = arg[9:-1]
+                if model_id == '':
+                    print("** instance id missing **")
+                    return
+                key = 'Amenity.' + model_id
+                try:
+                    del storage.all()[key]
+                    storage.save()
+                except KeyError:
+                    print('** no instance found **')
+
+        elif arg[0:8] == '.update(':
+            if arg[-1] != ')':
+                return cmd.Cmd.default(self, line)
+            else:
+                args = arg[8:-1]
+                args_list = args.split(',')
+                oob = ['id', 'created_at', 'updated_at']
+
+                if len(args_list) < 2 and args_list[0] == '':
+                    print('** instance id missing **')
+                    return
+                elif len(args_list) < 2:
+                    print('** attribute name missing **')
+                    return
+                else:
+                    # clear whitespaces around arguments
+                    i = 0
+                    while (i < len(args_list)):
+                        while(args_list[i][0] == " "):
+                            args_list[i] = args_list[i][1:]
+                        i += 1
+
+                    if args_list[1][0] == '{' and args_list[-1][-1] == '}':
+                        dictargs = args_list[1:]
+                        dictargs[0] = dictargs[0][1:]
+                        dictargs[-1] = dictargs[-1][:-1]
+                        key = 'Amenity.' + args_list[0]
+                        try:
+                            instance = storage.all()[key]
+                        except KeyError:
+                            print('** no instance found **')
+                            return
+                        for s in dictargs:
+                            keyval = s.split(':')
+                            key = keyval[0]
+                            value = keyval[1]
+                            while(value[0] == " "):
+                                value = value[1:]
+                            if key in oob:
+                                print('** attribute can\'t be updated **')
+                                return
+                            if (key[0] == '"' and key[-1] == '"')\
+                               or (key[0] == "'" and key[-1] == "'"):
+                                key = key[1:-1]
+                            else:
+                                print("** Dictionary object keys must be \
+strings **")
+                                return
+                            if (value[0] == '"' and value[-1] == '"')\
+                               or (value[0] == "'" and value[-1] == "'"):
+                                value = value[1:-1]
+
+                            else:
+                                for c in value:
+                                    if c == " ":
+                                        print("** A string argument with a \
+space must be between double quotes **")
+                                        return
+                                try:
+                                    for c in value:
+                                        if c == '.':
+                                            value = float(value)
+                                            break
+                                    else:
+                                        value = int(value)
+                                except ValueError:
+                                    pass
+
+                            instance.__dict__[key] = value
+                            instance.save()
+                        return
+                    elif len(args_list) < 3:
+                        print('** value missing **')
+                        return
+
+                model_id = args_list[0]
+                attr = args_list[1]
+                value = args_list[2]
+
+                if attr in oob:
+                    print('** attribute can\'t be updated **')
+                    return
+                """
+                string validity test begins (incomplete)
+                """
+                if (attr[0] == '"' and attr[-1] == '"'):
+                    attr = attr[1:-1]
+                else:
+                    for i in attr:
+                        if i == " ":
+                            print("** A string argument with a space \
+must be between double quotes **")
+                            return
+                if value[0] == '"' and value[-1] == '"':
+                    value = value[1:-1]
+                else:
+                    for i in attr:
+                        if i == " ":
+                            print("** A string argument with a space \
+must be between double quotes **")
+                            return
+                    try:
+                        for c in value:
+                            if c == '.':
+                                value = float(value)
+                                break
+                        else:
+                            value = int(value)
+                    except ValueError:
+                        pass
+                """ string validity test ends """
+
+                key = 'Amenity.' + model_id
+                try:
+                    instance = storage.all()[key]
+                    instance.__dict__[attr] = value
+                    instance.save()
+                except KeyError:
+                    print('** no instance found **')
+
+        else:
+            return cmd.Cmd.default(self, line)
+
+    def do_Review(self, line):
+        objects = []
+        parse_line = cmd.Cmd.parseline(self, line)
+        arg = parse_line[2]
+
+        for key, value in storage.all().items():
+            if type(value).__name__ == 'Review':
+                objects.append(value)
+
+        if arg in HBNBCommand.dotcmds:
+            result = [value.__str__() for value in objects]
+            if arg == HBNBCommand.dotcmds[0]:
+                print(result)
+            elif arg == HBNBCommand.dotcmds[1]:
+                print(len(result))
+
+        elif arg[0:6] == '.show(':
+            if arg[-1] != ')':
+                return cmd.Cmd.default(self, line)
+            else:
+                model_id = arg[6:-1]
+                if model_id == '':
+                    print("** instance id missing **")
+                    return
+                for obj in objects:
+                    if obj.id == model_id:
+                        print(obj)
+                        break
+                else:
+                    print('** no instance found **')
+
+        elif arg[0:9] == '.destroy(':
+            if arg[-1] != ')':
+                return cmd.Cmd.default(self, line)
+            else:
+                model_id = arg[9:-1]
+                if model_id == '':
+                    print("** instance id missing **")
+                    return
+                key = 'Review.' + model_id
+                try:
+                    del storage.all()[key]
+                    storage.save()
+                except KeyError:
+                    print('** no instance found **')
+
+        elif arg[0:8] == '.update(':
+            if arg[-1] != ')':
+                return cmd.Cmd.default(self, line)
+            else:
+                args = arg[8:-1]
+                args_list = args.split(',')
+                oob = ['id', 'created_at', 'updated_at']
+
+                if len(args_list) < 2 and args_list[0] == '':
+                    print('** instance id missing **')
+                    return
+                elif len(args_list) < 2:
+                    print('** attribute name missing **')
+                    return
+                else:
+                    # clear whitespaces around arguments
+                    i = 0
+                    while (i < len(args_list)):
+                        while(args_list[i][0] == " "):
+                            args_list[i] = args_list[i][1:]
+                        i += 1
+
+                    if args_list[1][0] == '{' and args_list[-1][-1] == '}':
+                        dictargs = args_list[1:]
+                        dictargs[0] = dictargs[0][1:]
+                        dictargs[-1] = dictargs[-1][:-1]
+                        key = 'Review.' + args_list[0]
+                        try:
+                            instance = storage.all()[key]
+                        except KeyError:
+                            print('** no instance found **')
+                            return
+                        for s in dictargs:
+                            keyval = s.split(':')
+                            key = keyval[0]
+                            value = keyval[1]
+                            while(value[0] == " "):
+                                value = value[1:]
+                            if key in oob:
+                                print('** attribute can\'t be updated **')
+                                return
+                            if (key[0] == '"' and key[-1] == '"')\
+                               or (key[0] == "'" and key[-1] == "'"):
+                                key = key[1:-1]
+                            else:
+                                print("** Dictionary object keys must be \
+strings **")
+                                return
+                            if (value[0] == '"' and value[-1] == '"')\
+                               or (value[0] == "'" and value[-1] == "'"):
+                                value = value[1:-1]
+
+                            else:
+                                for c in value:
+                                    if c == " ":
+                                        print("** A string argument with a \
+space must be between double quotes **")
+                                        return
+                                try:
+                                    for c in value:
+                                        if c == '.':
+                                            value = float(value)
+                                            break
+                                    else:
+                                        value = int(value)
+                                except ValueError:
+                                    pass
+
+                            instance.__dict__[key] = value
+                            instance.save()
+                        return
+                    elif len(args_list) < 3:
+                        print('** value missing **')
+                        return
+
+                model_id = args_list[0]
+                attr = args_list[1]
+                value = args_list[2]
+
+                if attr in oob:
+                    print('** attribute can\'t be updated **')
+                    return
+                """
+                string validity test begins (incomplete)
+                """
+                if (attr[0] == '"' and attr[-1] == '"'):
+                    attr = attr[1:-1]
+                else:
+                    for i in attr:
+                        if i == " ":
+                            print("** A string argument with a space \
+must be between double quotes **")
+                            return
+                if value[0] == '"' and value[-1] == '"':
+                    value = value[1:-1]
+                else:
+                    for i in attr:
+                        if i == " ":
+                            print("** A string argument with a space \
+must be between double quotes **")
+                            return
+                    try:
+                        for c in value:
+                            if c == '.':
+                                value = float(value)
+                                break
+                        else:
+                            value = int(value)
+                    except ValueError:
+                        pass
+                """ string validity test ends """
+
+                key = 'Review.' + model_id
+                try:
+                    instance = storage.all()[key]
+                    instance.__dict__[attr] = value
+                    instance.save()
+                except KeyError:
+                    print('** no instance found **')
+
+        else:
+            return cmd.Cmd.default(self, line)
+
+    def do_quit(self, line):
+        """Quit command to exit from cmd"""
         return True
 
-    def do_EOF(self, arg):
-        'Ctr + D to exit the program\n'
+    def do_EOF(self, line):
+        """Ctrl D - to kill the program or exit from cmd"""
         print()
         return True
 
     def emptyline(self):
-        'Overrides the empty line method inherited from cmd'
+        """Empty line + Enter shouldn't execute anything"""
         pass
-
-    def do_create(self, cls):
-        'Creates a new instance: Usage \'create <class name>\'\n'
-        if cls == "":
-            print("** class name missing **")
-        elif cls in HBNBCommand.name_classes:
-            aux = HBNBCommand.name_classes.get(cls)()
-            aux.save()
-            print(aux.id)
-        else:
-            print("** class doesn't exist **")
-
-    def do_show(self, line):
-        '''Shows an instance: Usage \'show <class name> <id>\'\n'''
-        list_arg = line.split(" ")
-        if list_arg[0] == "":
-            print("** class name missing **")
-        elif not list_arg[0] in HBNBCommand.name_classes:
-            print("** class doesn't exist **")
-        elif len(list_arg) == 1:
-            print("** instance id missing **")
-        else:
-            dict_objs = storage.all()
-            aux = "{}.{}".format(list_arg[0], list_arg[1])
-            if aux in dict_objs.keys():
-                print(dict_objs[aux])
-            else:
-                print("** no instance found **")
-
-    def do_destroy(self, line):
-        'Deletes an instance: Usage \'destroy <class name> <id>\'\n'
-        list_arg = line.split(" ")
-        if list_arg[0] == "":
-            print("** class name missing **")
-        elif list_arg[0] not in HBNBCommand.name_classes:
-            print("** class doesn't exist **")
-        elif len(list_arg) == 1:
-            print("** instance id missing **")
-        else:
-            dict_objs = storage.all()
-            aux = "{}.{}".format(list_arg[0], list_arg[1])
-            if aux in dict_objs.keys():
-                storage.delete(list_arg[0], list_arg[1])
-            else:
-                print("** no instance found **")
-
-    def do_all(self, line):
-        'Shows all the instances: Usage \'all [<class name>]\'\n'
-        if (line == ""):
-            list_obj = list(storage.all().values())
-            print(list(map(lambda x: str(x), list_obj)))
-        elif line in HBNBCommand.name_classes:
-            list_obj = list(storage.all().values())
-            list_obj = filter(lambda x: type(x) is
-                              HBNBCommand.name_classes.get(line), list_obj)
-            print(list(map(lambda x: str(x), list_obj)))
-        else:
-            print("** class doesn't exist **")
-
-    def do_update(self, line):
-        '''Updates an instance:
-        Usage \'update <class name> <id> <attribute name> "<attribute value>"\'
-        '''
-        list_arg = shlex.split(line)
-        if len(list_arg) == 0:
-            print("** class name missing **")
-        elif not list_arg[0] in HBNBCommand.name_classes:
-            print("** class doesn't exist **")
-        elif len(list_arg) == 1:
-            print("** instance id missing **")
-        elif ("{}.{}".format(list_arg[0], list_arg[1])
-              not in storage.all().keys()):
-            print("** no instance found **")
-        elif len(list_arg) == 2:
-            print("** attribute name missing **")
-        elif len(list_arg) == 3:
-            print("** value missing **")
-        else:
-            dict_objs = storage.all()
-            aux = "{}.{}".format(list_arg[0], list_arg[1])
-            if aux in dict_objs.keys():
-                attr = getattr(dict_objs[aux], list_arg[2], "")
-                setattr(dict_objs[aux], list_arg[2], type(attr)(list_arg[3]))
-                dict_objs[aux].save()
-
-    @staticmethod
-    def all_class(*args):
-        '''call all instaces of obj'''
-        dummy = HBNBCommand()
-        dummy.do_all(args[0])
-
-    @staticmethod
-    def count_class(*args):
-        '''count all instaces of obj'''
-        list_obj = list(storage.all().values())
-        list_obj = filter(lambda x: type(x) is
-                          HBNBCommand.name_classes.get(args[0]), list_obj)
-        print(len(list(list_obj)))
-
-    @staticmethod
-    def show_class(*args):
-        ''' show an intances '''
-        dummy = HBNBCommand()
-        dummy.do_show(" ".join(args))
-
-    @staticmethod
-    def destroy_class(*args):
-        ''' destroy an intance '''
-        dummy = HBNBCommand()
-        dummy.do_destroy(" ".join(args))
-
-    @staticmethod
-    def update_class(*args):
-        ''' update an intance '''
-        dummy = HBNBCommand()
-        if len(args) == 3 and type(args[2]) is dict:
-            for attr, val in args[2].items():
-                tmp = list(args[0:2]) + [attr, str(val)]
-                dummy.do_update(" ".join(tmp))
-        else:
-            dummy.do_update(" ".join(args))
-
-    name_dotcommand = {".all()": "HBNBCommand.all_class",
-                       ".count()": "HBNBCommand.count_class",
-                       ".show()": "HBNBCommand.show_class",
-                       ".destroy()": "HBNBCommand.destroy_class",
-                       ".update()": "HBNBCommand.update_class"}
-
-    def do_User(self, line):
-        '''functions for User:
-        '''
-        cmd_args = line[line.find("(") + 1:line.find(")")]
-        cmd_line = line.replace(cmd_args, "")
-        if cmd_line in HBNBCommand.name_dotcommand:
-            eval(HBNBCommand.name_dotcommand[cmd_line] + "({})"
-                 .format("'User', " + cmd_args))
-
-    def do_State(self, line):
-        '''functions for State:
-        '''
-        cmd_args = line[line.find("(") + 1:line.find(")")]
-        cmd_line = line.replace(cmd_args, "")
-        if cmd_line in HBNBCommand.name_dotcommand:
-            eval(HBNBCommand.name_dotcommand[cmd_line] + "({})"
-                 .format("'State', " + cmd_args))
-
-    def do_City(self, line):
-        '''functions for City:
-        '''
-        cmd_args = line[line.find("(") + 1:line.find(")")]
-        cmd_line = line.replace(cmd_args, "")
-        if cmd_line in HBNBCommand.name_dotcommand:
-            eval(HBNBCommand.name_dotcommand[cmd_line] + "({})"
-                 .format("'City', " + cmd_args))
-
-    def do_Amenity(self, line):
-        '''functions for Amenity:
-        '''
-        cmd_args = line[line.find("(") + 1:line.find(")")]
-        cmd_line = line.replace(cmd_args, "")
-        if cmd_line in HBNBCommand.name_dotcommand:
-            eval(HBNBCommand.name_dotcommand[cmd_line] + "({})"
-                 .format("'Amenity', " + cmd_args))
-
-    def do_Place(self, line):
-        '''functions for Place:
-        '''
-        cmd_args = line[line.find("(") + 1:line.find(")")]
-        cmd_line = line.replace(cmd_args, "")
-        if cmd_line in HBNBCommand.name_dotcommand:
-            eval(HBNBCommand.name_dotcommand[cmd_line] + "({})"
-                 .format("'Place', " + cmd_args))
-
-    def do_Review(self, line):
-        '''functions for Review:
-        '''
-        cmd_args = line[line.find("(") + 1:line.find(")")]
-        cmd_line = line.replace(cmd_args, "")
-        if cmd_line in HBNBCommand.name_dotcommand:
-            eval(HBNBCommand.name_dotcommand[cmd_line] + "({})"
-                 .format("'Review', " + cmd_args))
-
-    def do_BaseModel(self, line):
-        '''functions for BaseModel:
-        '''
-        cmd_args = line[line.find("(") + 1:line.find(")")]
-        cmd_line = line.replace(cmd_args, "")
-        if cmd_line in HBNBCommand.name_dotcommand:
-            eval(HBNBCommand.name_dotcommand[cmd_line] + "({})"
-                 .format("'BaseModel', " + cmd_args))
 
 
 if __name__ == '__main__':
-    console = HBNBCommand()
-    console.cmdloop()
+    HBNBCommand().cmdloop()
