@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 """__init__ magic method for models directory"""
+import json
 from models.engine.file_storage import FileStorage
 
 
